@@ -1,0 +1,276 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  SUPERUSER
+  RIFADOR
+}
+
+enum RaffleStatus {
+  OPEN
+  CLOSED
+}
+
+enum RaffleMode {
+  RANGE // 1-N
+  LOTTERY // 0000-9999
+}
+
+enum PaymentStatus {
+  PENDING
+  REJECTED
+  SUCCESS
+}
+
+enum PaymentEventType {
+  INITIATED
+  REDIRECTED
+  CALLBACK
+  COMPLETED
+  FAILED
+}
+
+enum PaymentMethod {
+  CARD
+  TRANSFER
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  uuid        String   @unique @default(uuid())
+  name        String
+  email       String   @unique
+  password    String
+  nationalId  String?
+  phoneNumber String?
+  role        UserRole @default(RIFADOR)
+
+  tickets  Ticket[]
+  payments Payment[]
+  events   PaymentEvent[]
+  winners  Winner[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Raffle {
+  id                     Int          @id @default(autoincrement())
+  uuid                   String       @unique @default(uuid())
+  customUrl              String?      @unique
+  name                   String
+  description            String
+  rules                  String
+  awards                 String
+  videoUrl               String?
+  ticketPrice            Int
+  status                 RaffleStatus @default(OPEN)
+  opportunitiesPerTicket Int
+  totalNumbers           Int
+  totalTickets           Int
+  raffleMode             RaffleMode   @default(LOTTERY)
+  isFeatured             Boolean      @default(false)
+  primaryImageIndex      Int?
+
+  tickets       Ticket[]
+  ticketNumbers TicketNumber[]
+  payments      Payment[]
+  winners       Winner[]       @relation("RaffleWinners")
+  images        RaffleImage[]
+  terms         Terms?         @relation("RaffleToTerms")
+  buildSpecs    BuildSpecs?    @relation("RaffleToBuildSpecs")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RaffleImage {
+  id        Int     @id @default(autoincrement())
+  url       String
+  isPrimary Boolean @default(false)
+  raffleId  Int
+  raffle    Raffle  @relation(fields: [raffleId], references: [id])
+}
+
+model Ticket {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  raffleId  Int
+  raffle    Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  paymentId Int?
+  payment   Payment? @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  purchaseDate DateTime?
+
+  ticketNumbers TicketNumber[]
+  winners       Winner[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TicketNumber {
+  id       Int     @id @default(autoincrement())
+  number   String
+  isWinner Boolean @default(false)
+  ticketId Int?
+  ticket   Ticket? @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+  raffleId Int
+  raffle   Raffle  @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([number, raffleId])
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  userId        Int
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderNumber   Int?          @unique
+  amount        Int
+  status        PaymentStatus
+  paymentDate   DateTime      @default(now())
+  paymentMethod PaymentMethod
+  receiptUrl    String?
+  feedback      String?
+  bankName      String?
+
+  raffleId      Int?
+  raffle        Raffle?        @relation(fields: [raffleId], references: [id])
+  tickets       Ticket[]
+  paymentEvents PaymentEvent[] @relation("PaymentToEvents")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([raffleId])
+}
+
+model PaymentEvent {
+  id        Int              @id @default(autoincrement())
+  eventType PaymentEventType
+  paymentId Int
+  payment   Payment          @relation("PaymentToEvents", fields: [paymentId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([paymentId])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model Winner {
+  id            Int     @id @default(autoincrement())
+  name          String
+  imageUrl      String
+  videoUrl      String?
+  winningNumber String
+
+  userId   Int
+  user     User   @relation(fields: [userId], references: [id])
+  raffleId Int    @unique
+  raffle   Raffle @relation("RaffleWinners", fields: [raffleId], references: [id])
+  ticketId Int
+  ticket   Ticket @relation(fields: [ticketId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Terms {
+  id        Int      @id @default(autoincrement())
+  content   Json
+  raffleId  Int?     @unique
+  raffle    Raffle?  @relation("RaffleToTerms", fields: [raffleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([raffleId])
+}
+
+model BuildSpecs {
+  id        Int      @id @default(autoincrement())
+  content   Json
+  raffleId  Int?     @unique
+  raffle    Raffle?  @relation("RaffleToBuildSpecs", fields: [raffleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([raffleId])
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  slug      String   @unique
+  content   Json
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Faq {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialMedia {
+  id        Int      @id @default(autoincrement())
+  icon      String
+  name      String
+  link      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Support {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  phoneNumber String   @unique
+  whatsapp    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Bank {
+  id            Int      @id @default(autoincrement())
+  name          String
+  accountNumber String   @unique
+  accountType   String
+  accountHolder String
+  imageUrl      String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  email     String
+  token     String   @unique
+  expires   DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([token])
+}

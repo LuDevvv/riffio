@@ -1,0 +1,58 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: riffio
+      POSTGRES_PASSWORD: riffio
+      POSTGRES_DB: riffio_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+    environment:
+      - DATABASE_URL=postgresql://riffio:riffio@postgres:5432/riffio_db
+      - REDIS_HOST=redis
+    ports:
+      - "4000:3000"
+    depends_on:
+      - postgres
+      - redis
+
+  admin:
+    build:
+      context: ./apps/admin
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  client-landing:
+    build:
+      context: ./apps/client-landing
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
