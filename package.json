@@ -1,44 +1,28 @@
 {
-  "name": "riffio",
+  "name": "raffle_system",
   "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "tenant:create": "ts-node packages/db/prisma/tenants/bootstrap-tenant.ts",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "clean": "rimraf apps/**/dist apps/**/.next packages/**/dist",
     "check-types": "turbo run check-types",
-    "db:generate": "prisma generate --schema packages/db/prisma/schema.prisma",
-    "db:migrate": "prisma migrate dev --name init --schema packages/db/prisma/schema.prisma",
-    "db:studio": "prisma studio --schema packages/db/prisma/schema.prisma",
+    "db:generate": "pnpm --filter prisma prisma generate",
+    "db:migrate": "pnpm --filter prisma prisma migrate dev --name init",
+    "db:studio": "pnpm --filter prisma prisma studio",
     "docker:dev": "docker-compose up --build",
     "docker:prod": "docker-compose -f docker-compose.prod.yml up --build -d"
   },
   "devDependencies": {
     "@types/node": "^22.15.14",
     "prettier": "^3.5.3",
-    "prisma": "^6.7.0",
     "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
     "turbo": "^2.5.2",
     "typescript": "5.8.2"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@prisma/client": "^6.7.0",
-    "autoprefixer": "^10.4.21",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "dotenv": "^16.5.0",
-    "pg": "^8.15.6",
-    "postcss": "^8.5.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "tailwind-variants": "^1.0.0",
-    "tailwindcss": "^4"
   }
 }

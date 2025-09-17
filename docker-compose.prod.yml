@@ -5,9 +5,9 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: riffio
-      POSTGRES_PASSWORD: riffio
-      POSTGRES_DB: riffio_db
+      POSTGRES_USER: raffle_system
+      POSTGRES_PASSWORD: raffle_system
+      POSTGRES_DB: raffle_system_db
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://riffio:riffio@postgres:5432/riffio_db
+      - DATABASE_URL=postgresql://raffle_system:raffle_system@postgres:5432/raffle_system_db
       - REDIS_HOST=redis
     ports:
       - "4000:3000"
